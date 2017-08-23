@@ -1,0 +1,95 @@
+user=""
+password=""
+target="139.18.143.253"
+
+#!/bin/sh  /etc/rc.common
+#Edit by Shiguang Feng/shig.feng@gmail.com
+
+
+START=99
+
+start(){
+	sleep 20
+
+	source /etc/rc.local
+	ssh="ssh -y -y -K 120"
+	cmd="$ssh $user@$target"
+	fifo_in="/tmp/empty.in"
+	fifo_out="/tmp/empty.out"
+	lognu=1
+	check=1
+
+	while true
+	do
+	   
+	   if netstat -tn|grep "$target:22"|grep "ESTABLISHED"
+	   then
+		echo "You are online now!($check)"
+		let check=${check}+1
+	   else
+		echo "Starting SSH logon...($lognu)"
+		let lognu=${lognu}+1
+		> /root/.ssh/known_hosts
+		rm -f  /tmp/empty.in
+		rm -f  /tmp/empty.out
+		sleep 5
+		empty -f -i $fifo_in -o $fifo_out $cmd
+		empty -w -i $fifo_out -o $fifo_in -t 10 assword: "$password\n"
+	   fi
+
+	   sleep 600
+	done
+	}
+
+stop(){}
+
+
+
+
+##############################
+#### VPN #####################
+##############################
+
+
+START=99
+
+start(){
+	sleep 20
+
+	source /etc/rc.local
+	ssh="ssh -y -y -K 120"
+	cmd="$ssh $user@$target"
+	fifo_in="/tmp/empty.in"
+	fifo_out="/tmp/empty.out"
+	lognu=1
+	check=1
+
+	while true
+	do
+	   if netstat |grep "vpn.uni-leipzig.de" && netstat -tn|grep "$target:22"|grep "ESTABLISHED"
+	   then
+		echo "Both UniVPN and SSH are working!"
+		sleep 120
+		reboot -f
+	   else
+	   	if netstat -tn|grep "$target:22"|grep "ESTABLISHED"
+	   	then
+			echo "You are online now!($check)"
+			let check=${check}+1
+	   	else
+			echo "Starting SSH logon...($lognu)"
+			let lognu=${lognu}+1
+			> /root/.ssh/known_hosts
+			rm -f  /tmp/empty.in
+			rm -f  /tmp/empty.out
+			sleep 5
+			empty -f -i $fifo_in -o $fifo_out $cmd
+			empty -w -i $fifo_out -o $fifo_in -t 10 assword: "$password\n"
+	   	fi
+	    fi
+
+		sleep 600
+	done
+	}
+
+stop(){}
