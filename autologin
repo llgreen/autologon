@@ -1,6 +1,11 @@
-user=""
-password=""
-target="139.18.143.253"
+
+user="root"
+password="1234"
+#target="139.18.143.253"
+target="192.168.1.1"
+ka=120 
+sp=600
+
 
 #!/bin/sh  /etc/rc.common
 #Edit by Shiguang Feng/shig.feng@gmail.com
@@ -12,24 +17,43 @@ start(){
 	sleep 20
 
 	source /etc/rc.local
-	ssh="ssh -y -y -K 120"
-	cmd="$ssh $user@$target"
+	ssh="ssh -y -y -K "
+	cmd="$ssh $ka $user@$target"
 	fifo_in="/tmp/empty.in"
 	fifo_out="/tmp/empty.out"
-	lognu=1
-	check=1
+	lognu=0
+	count=0
+
+	rm -f /root/.ssh/known_hosts
+
+	while [ ${count} -le 60 ]
+	do
+	  if netstat -tn|grep "$target:22"|grep "ESTABLISHED"
+	     then
+		  echo "You are online now!(START${count})"
+	     else
+		  echo "Starting SSH logon...(START${count})"
+		  rm -f  /tmp/empty.in
+		  rm -f  /tmp/empty.out
+		  sleep 5
+		  empty -f -i $fifo_in -o $fifo_out $cmd
+		  empty -w -i $fifo_out -o $fifo_in -t 10 assword: "$password\n"
+	   fi
+	   let count=${count}+1
+	   sleep 5
+ 	done
+
+
 
 	while true
 	do
 	   
 	   if netstat -tn|grep "$target:22"|grep "ESTABLISHED"
 	   then
-		echo "You are online now!($check)"
-		let check=${check}+1
+		echo "You are online now!($lognu)"
 	   else
 		echo "Starting SSH logon...($lognu)"
 		let lognu=${lognu}+1
-		> /root/.ssh/known_hosts
 		rm -f  /tmp/empty.in
 		rm -f  /tmp/empty.out
 		sleep 5
@@ -37,7 +61,7 @@ start(){
 		empty -w -i $fifo_out -o $fifo_in -t 10 assword: "$password\n"
 	   fi
 
-	   sleep 600
+	   sleep $sp
 	done
 	}
 
@@ -45,10 +69,9 @@ stop(){}
 
 
 
+##############################################################################################
 
-##############################
-#### VPN #####################
-##############################
+
 
 
 START=99
